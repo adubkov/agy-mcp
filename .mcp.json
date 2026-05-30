@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "agy": {
+      "command": "${CLAUDE_PLUGIN_ROOT}/agy-mcp",
+      "args": [],
+      "env": {}
+    }
+  }
+}
