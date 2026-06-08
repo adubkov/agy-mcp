@@ -1039,6 +1039,7 @@ func TestBackendTimeoutHeadroom(t *testing.T) {
 func TestToolSchemas(t *testing.T) {
 	gemini := newTool(geminiBackend)
 	claude := newTool(claudeBackend)
+	codex := newTool(codexBackend)
 
 	if gemini.Name != "gemini_agent" {
 		t.Errorf("gemini tool name = %q; want gemini_agent", gemini.Name)
@@ -1046,8 +1047,11 @@ func TestToolSchemas(t *testing.T) {
 	if claude.Name != "claude_agent" {
 		t.Errorf("claude tool name = %q; want claude_agent", claude.Name)
 	}
+	if codex.Name != "codex_agent" {
+		t.Errorf("codex tool name = %q; want codex_agent", codex.Name)
+	}
 
-	// Shared params present on both.
+	// Shared params present on all three.
 	for _, p := range []string{"task", "add_dirs", "working_dir", "timeout_seconds", "model", "allow_tools"} {
 		if _, ok := gemini.InputSchema.Properties[p]; !ok {
 			t.Errorf("gemini tool missing shared param %q", p)
@@ -1055,14 +1059,20 @@ func TestToolSchemas(t *testing.T) {
 		if _, ok := claude.InputSchema.Properties[p]; !ok {
 			t.Errorf("claude tool missing shared param %q", p)
 		}
+		if _, ok := codex.InputSchema.Properties[p]; !ok {
+			t.Errorf("codex tool missing shared param %q", p)
+		}
 	}
 
-	// sandbox is gemini-only.
+	// sandbox is gemini-only; claude and codex must NOT expose it.
 	if _, ok := gemini.InputSchema.Properties["sandbox"]; !ok {
 		t.Error("gemini tool should expose the sandbox param")
 	}
 	if _, ok := claude.InputSchema.Properties["sandbox"]; ok {
 		t.Error("claude tool must NOT expose a sandbox param")
+	}
+	if _, ok := codex.InputSchema.Properties["sandbox"]; ok {
+		t.Error("codex tool must NOT expose a sandbox param")
 	}
 
 	// The gemini description must not claim sandbox-by-default (the bug this fixes),
@@ -1072,6 +1082,12 @@ func TestToolSchemas(t *testing.T) {
 	}
 	if !strings.Contains(gemini.Description, "OFF by default") {
 		t.Errorf("gemini description should state sandboxing is OFF by default: %q", gemini.Description)
+	}
+
+	// The codex description must convey that its default (allow_tools:false) is a
+	// read-only sandbox, not a pure no-tools mode — the key semantic difference.
+	if !strings.Contains(codex.Description, "read-only") {
+		t.Errorf("codex description should state its default is read-only: %q", codex.Description)
 	}
 }
 
